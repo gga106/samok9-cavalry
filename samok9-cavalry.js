@@ -1,11 +1,3 @@
-// ============================================================
-//  Samok9  -  Behind-the-scenes overlay for Cavalry
-//  Clean Cyclops-style: solid corner & edge-midpoint square
-//  handles, anchor markers, motion paths with direction &
-//  keyframe markers, compact bottom-left HUD (layer name +
-//  dimensions on one line), and 3 render passes.
-// ============================================================
-
 var CFG = {
     // colors (distinct per selected layer; cycled if more layers than colors)
     palette: [
