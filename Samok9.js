@@ -78,43 +78,24 @@ function findRoot() {
 }
 
 function styleShape(id, fill, stroke, sw) {
-    safe("fill", function () {
-        if (fill) {
-            api.setFill(id, true);
-            api.set(id, { "material.materialColor": fill });
-        } else {
-            api.setFill(id, false);
-        }
-    });
-    safe("stroke", function () {
-        if (stroke && sw > 0) {
-            api.setStroke(id, true);
-            api.set(id, { "stroke.strokeColor": stroke, "stroke.width": sw });
-        } else {
-            api.setStroke(id, false);
-        }
-    });
-}
-
-function setRectSize(id, w, h) {
-    var safeW = Math.max(0.5, Number(w) || 0.5);
-    var safeH = Math.max(0.5, Number(h) || 0.5);
-    safe("rect size", function () {
-        api.set(id, { "generator.dimensions": [safeW, safeH] });
-    });
-}
-
-function setEllipseRadius(id, r) {
-    var safeR = Math.max(0.5, Number(r) || 0.5);
-    safe("ellipse radius", function () {
-        api.set(id, { "generator.radius": [safeR, safeR] });
-    });
+    if (fill) {
+        api.setFill(id, true);
+        api.set(id, { "material.materialColor": fill });
+    } else {
+        api.setFill(id, false);
+    }
+    if (stroke && sw > 0) {
+        api.setStroke(id, true);
+        api.set(id, { "stroke.strokeColor": stroke, "stroke.width": sw });
+    } else {
+        api.setStroke(id, false);
+    }
 }
 
 function mkRect(parent, name, w, h, fill, stroke, sw) {
     var id = api.primitive("rectangle", name);
     styleShape(id, fill, stroke, sw);
-    setRectSize(id, w, h);
+    api.set(id, { "generator.dimensions": [Math.max(0.5, w), Math.max(0.5, h)] });
     api.parent(id, parent);
     return id;
 }
@@ -122,7 +103,7 @@ function mkRect(parent, name, w, h, fill, stroke, sw) {
 function mkEllipse(parent, name, r, fill, stroke, sw) {
     var id = api.primitive("ellipse", name);
     styleShape(id, fill, stroke, sw);
-    setEllipseRadius(id, r);
+    api.set(id, { "generator.radius": [Math.max(0.5, r), Math.max(0.5, r)] });
     api.parent(id, parent);
     return id;
 }
@@ -278,9 +259,7 @@ function buildLayer(it, idx, root, frames) {
                 for (var d = 0; d < n; d += CFG.pathDotEvery) {
                     if (isKey[d]) { continue; }
                     var dot = mkEllipse(pathGrp, "PathDot_" + d, CFG.pathDotSize, col, null, 0);
-                    safe("path dot pos", function () {
-                        api.set(dot, { "position": [it.piv[d].x, it.piv[d].y] });
-                    });
+                    api.set(dot, { "position": [it.piv[d].x, it.piv[d].y] });
                 }
             }
 
@@ -294,11 +273,9 @@ function buildLayer(it, idx, root, frames) {
                     CFG.accentLight,
                     2
                 );
-                safe("key marker pos", function () {
-                    api.set(mk, {
-                        "position": [it.piv[markers[m]].x, it.piv[markers[m]].y],
-                        "rotation": 45
-                    });
+                api.set(mk, {
+                    "position": [it.piv[markers[m]].x, it.piv[markers[m]].y],
+                    "rotation": 45
                 });
             }
         });
@@ -310,16 +287,10 @@ function buildLayer(it, idx, root, frames) {
     api.parent(bg, grp);
 
     if (constCenter) {
-        safe("bounds pos", function () {
-            api.set(bg, { "position": [it.box[0].cx, it.box[0].cy] });
-        });
+        api.set(bg, { "position": [it.box[0].cx, it.box[0].cy] });
     } else {
         for (var a = 0; a < n; a++) {
-            (function (idxA) {
-                safe("bounds keyframe", function () {
-                    api.keyframe(bg, frames[idxA], { "position.x": it.box[idxA].cx, "position.y": it.box[idxA].cy });
-                });
-            })(a);
+            api.keyframe(bg, frames[a], { "position.x": it.box[a].cx, "position.y": it.box[a].cy });
         }
     }
 
@@ -374,21 +345,21 @@ function buildLayer(it, idx, root, frames) {
                 if (constSize) {
                     var b0 = it.box[0];
                     var res0 = fo.fn(b0.w, b0.h);
-                    api.set(fo.id, { "position": [res0.x, res0.y] });
+                    var setObj = { "position": [res0.x, res0.y] };
                     if (fo.size) {
-                        setRectSize(fo.id, res0.w, res0.h);
+                        setObj["generator.dimensions"] = [res0.w, res0.h];
                     }
+                    api.set(fo.id, setObj);
                 } else {
                     for (var i = 0; i < n; i++) {
                         var b = it.box[i];
                         var res = fo.fn(b.w, b.h);
-                        api.keyframe(fo.id, frames[i], { "position.x": res.x, "position.y": res.y });
+                        var k = { "position.x": res.x, "position.y": res.y };
                         if (fo.size) {
-                            api.keyframe(fo.id, frames[i], {
-                                "generator.dimensions.x": Math.max(0.5, res.w),
-                                "generator.dimensions.y": Math.max(0.5, res.h)
-                            });
+                            k["generator.dimensions.x"] = res.w;
+                            k["generator.dimensions.y"] = res.h;
                         }
+                        api.keyframe(fo.id, frames[i], k);
                     }
                 }
             });
@@ -401,6 +372,7 @@ function buildLayer(it, idx, root, frames) {
             api.parent(hud, bg);
             safe("hud color", function () { api.set(hud, { "material.materialColor": col }); });
             safe("hud size", function () { api.set(hud, { "fontSize": CFG.hudSize }); });
+            safe("hud align", function () { api.set(hud, { "horizontalAlignment": 0 }); });
 
             function calcHudPos(w, h) {
                 var leftX = -(w / 2 + CFG.padding) + CFG.hudIndentX;
@@ -417,185 +389,4 @@ function buildLayer(it, idx, root, frames) {
                 });
             } else {
                 for (var i = 0; i < n; i++) {
-                    var bi = it.box[i];
-                    var pi = calcHudPos(bi.w, bi.h);
-                    api.keyframe(hud, frames[i], {
-                        "text": formatHudText(it.name, bi.w, bi.h),
-                        "position.x": pi[0],
-                        "position.y": pi[1]
-                    });
-                }
-            }
-        });
-    }
-
-    if (CFG.showAnchor) {
-        safe("anchor", function () {
-            var ag = api.create("group", "Anchor_" + it.name);
-            api.parent(ag, grp);
-            mkEllipse(ag, "AnchorRing", CFG.anchorRadius, null, col, CFG.anchorStroke);
-            mkRect(ag, "AnchorH", CFG.anchorCross, CFG.anchorStroke, col, null, 0);
-            mkRect(ag, "AnchorV", CFG.anchorStroke, CFG.anchorCross, col, null, 0);
-            var constPiv = allSame(it.piv, "x") && allSame(it.piv, "y");
-            if (constPiv) {
-                safe("anchor pos", function () {
-                    api.set(ag, { "position": [it.piv[0].x, it.piv[0].y] });
-                });
-            } else {
-                for (var i = 0; i < n; i++) {
-                    (function (idxP) {
-                        safe("anchor keyframe", function () {
-                            api.keyframe(ag, frames[idxP], { "position.x": it.piv[idxP].x, "position.y": it.piv[idxP].y });
-                        });
-                    })(i);
-                }
-            }
-        });
-    }
-}
-
-function buildSamok9() {
-    var sel = api.getSelection();
-    if (!sel || sel.length === 0) {
-        console.error("[Samok9] Select at least one layer first.");
-        return;
-    }
-
-    var compLayers = api.getCompLayers(false);
-    var orderedSel = [];
-    for (var cIdx = 0; cIdx < compLayers.length; cIdx++) {
-        if (sel.indexOf(compLayers[cIdx]) >= 0) {
-            orderedSel.push(compLayers[cIdx]);
-        }
-    }
-    for (var sIdx = 0; sIdx < sel.length; sIdx++) {
-        if (orderedSel.indexOf(sel[sIdx]) < 0) {
-            orderedSel.push(sel[sIdx]);
-        }
-    }
-    TARGETS = orderedSel.slice();
-
-    var old = findRoot();
-    if (old) { api.deleteLayer(old); }
-
-    var origFrame = api.getFrame();
-
-    var fStart = 1000000, fEnd = -1000000;
-    for (var s = 0; s < orderedSel.length; s++) {
-        (function (id) {
-            var a = safe("in frame", function () { return api.getInFrame(id); });
-            var z = safe("out frame", function () { return api.getOutFrame(id); });
-            if (a !== null && a < fStart) { fStart = a; }
-            if (z !== null && z > fEnd) { fEnd = z; }
-        })(orderedSel[s]);
-    }
-    if (CFG.startFrame !== null) { fStart = CFG.startFrame; }
-    if (CFG.endFrame !== null) { fEnd = CFG.endFrame; }
-    if (fStart > fEnd) { fStart = 0; fEnd = 100; }
-    console.log("[Samok9] Sampling frames " + fStart + " - " + fEnd);
-
-    var frames = [];
-    var items = [];
-    for (var i = 0; i < orderedSel.length; i++) {
-        items.push({ id: orderedSel[i], name: api.getNiceName(orderedSel[i]), box: [], piv: [] });
-    }
-    for (var f = fStart; f <= fEnd; f += CFG.sampleStep) {
-        api.setFrame(f);
-        frames.push(f);
-        for (var k = 0; k < items.length; k++) {
-            var b = safe("read bounds", function () { return readBox(items[k].id); });
-            if (!b) {
-                b = items[k].box.length
-                    ? items[k].box[items[k].box.length - 1]
-                    : { cx: 0, cy: 0, w: CFG.nullSize, h: CFG.nullSize };
-            }
-            items[k].box.push(b);
-            items[k].piv.push(readPivot(items[k].id, b));
-        }
-    }
-    api.setFrame(origFrame);
-
-    var root = api.create("group", ROOT_NAME);
-    for (var j = 0; j < items.length; j++) {
-        (function (it, idx) {
-            safe("build " + it.name, function () { buildLayer(it, idx, root, frames); });
-        })(items[j], j);
-    }
-    console.log("[Samok9] Done. " + items.length + " layer(s), " + frames.length + " frames.");
-}
-
-function removeSamok9() {
-    var root = findRoot();
-    if (root) {
-        api.deleteLayer(root);
-        console.log("[Samok9] Overlay removed.");
-    } else {
-        console.log("[Samok9] No overlay found.");
-    }
-}
-
-function getTargets() {
-    if (TARGETS.length > 0) { return TARGETS; }
-    return api.getSelection();
-}
-
-function runPass(label, showOverlay, hideOriginals) {
-    var root = findRoot();
-    if (!root) {
-        console.error("[Samok9] No overlay found. Click Build first.");
-        return;
-    }
-    var tg = getTargets();
-    try {
-        api.set(root, { "hidden": !showOverlay });
-        if (hideOriginals) {
-            for (var i = 0; i < tg.length; i++) { api.set(tg[i], { "hidden": true }); }
-        }
-        var item = api.addRenderQueueItem(api.getActiveComp());
-        safe("rename render item", function () { api.rename(item, label); });
-        console.log("[Samok9] Rendering: " + label);
-        api.render(item);
-    } finally {
-        for (var j = 0; j < tg.length; j++) {
-            (function (layerId) {
-                safe("restore target visibility", function () { api.set(layerId, { "hidden": false }); });
-            })(tg[j]);
-        }
-        safe("restore overlay visibility", function () { api.set(root, { "hidden": false }); });
-    }
-}
-
-function renderOverlay()   { runPass("Samok9_Overlay", true, false); }
-function renderClean()     { runPass("Samok9_Clean", false, false); }
-function renderWireframe() { runPass("Samok9_Wireframe", true, true); }
-function renderAll3() {
-    renderOverlay();
-    renderClean();
-    renderWireframe();
-    console.log("[Samok9] All passes rendered.");
-}
-
-function addButton(text, fn, label) {
-    var b = new ui.Button(text);
-    b.onClick = function () { safe(label, fn); };
-    ui.add(b);
-}
-
-function startUI() {
-    ui.setTitle("Samok9");
-    addButton("Build Samok9 Overlay (selected layers)", buildSamok9, "build");
-    addButton("Remove Overlay", removeSamok9, "remove");
-    addButton("Render Overlay", renderOverlay, "render overlay");
-    addButton("Render Clean", renderClean, "render clean");
-    addButton("Render Wireframe", renderWireframe, "render wireframe");
-    addButton("Render All 3", renderAll3, "render all");
-    ui.addStretch();
-    ui.show();
-}
-
-try {
-    startUI();
-} catch (e) {
-    console.error("[Samok9] UI failed (" + e + "). Building overlay directly instead.");
-    safe("build", buildSamok9);
-}
+                    var bi = it
