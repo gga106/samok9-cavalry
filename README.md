@@ -1,6 +1,6 @@
 # Samok9
 This script automates wireframe rendering in Cavalry.
-
+It is built using 98% AI.
 
 ## Features
 - **Color Palette by Layer:** Different colors are used for selected layers to distinguish wireframes from one another.
