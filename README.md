@@ -1,7 +1,7 @@
 # Samok9
 <img width="400" height="225" alt="Samok9Test" src="https://github.com/user-attachments/assets/c4ae0505-2023-4068-a35d-d196085b05a5" />
 
-This script automates wireframe rendering in Cavalry. It is built using 98% AI.
+This script automates wireframe rendering in Cavalry. It is built using 90% AI.
 
 ## Features
 - **Color Palette by Layer:** Different colors are used for selected layers to distinguish wireframes from one another.
